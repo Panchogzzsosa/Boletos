@@ -208,6 +208,7 @@
 								</button>
 							</div>
 							{/if}
+						</div>
 
 						<!-- Stats de la comunidad -->
 						<div class="com-stats">
