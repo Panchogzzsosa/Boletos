@@ -104,7 +104,7 @@
 	<!-- Rankings -->
 	<div class="rankings">
 		<div class="card">
-			<h2 class="card-title">Centros · boletos pendientes de pagar</h2>
+			<h2 class="card-title"><span>Centros</span> · boletos pendientes de pagar</h2>
 			{#if topCentros.length > 0}
 				<div class="ranking-list">
 					{#each topCentros as centro, i}
@@ -121,7 +121,7 @@
 		</div>
 
 		<div class="card">
-			<h2 class="card-title">Comunidades · boletos pendientes de pagar</h2>
+			<h2 class="card-title"><span>Comunidades</span> · boletos pendientes de pagar</h2>
 			{#if topComunidades.length > 0}
 				<div class="ranking-list">
 					{#each topComunidades as com, i}
