@@ -70,6 +70,11 @@
 			<span class="metric-value num">{totalRegresado}</span>
 			<span class="metric-sub">boleto{totalRegresado !== 1 ? 's' : ''} sin cargo</span>
 		</div>
+		<div class="metric-card">
+			<span class="metric-label">Perdidos</span>
+			<span class="metric-value num">{totalPerdido}</span>
+			<span class="metric-sub">boleto{totalPerdido !== 1 ? 's' : ''} perdido{totalPerdido !== 1 ? 's' : ''}</span>
+		</div>
 	</div>
 
 	<!-- Barra de progreso de boletos -->
@@ -83,6 +88,7 @@
 				<div class="progress-fill success" style="width: {pctPagado}%"></div>
 				<div class="progress-fill danger" style="width: {pctNoPagado}%"></div>
 				<div class="progress-fill neutral" style="width: {pctRegresado}%"></div>
+				<div class="progress-fill warning" style="width: {pctPerdido}%"></div>
 			</div>
 			<div class="progress-legend">
 				<div class="legend-item">
@@ -96,6 +102,10 @@
 				<div class="legend-item">
 					<span class="legend-dot neutral"></span>
 					<span>Regresados <strong>{totalRegresado}</strong></span>
+				</div>
+				<div class="legend-item">
+					<span class="legend-dot warning"></span>
+					<span>Perdidos <strong>{totalPerdido}</strong></span>
 				</div>
 			</div>
 		</div>
@@ -344,6 +354,11 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		margin-bottom: 1rem;
+	}
+
+	.card-title span {
+		font-weight: 800;
+		color: #0f0f0f;
 	}
 
 	.ranking-list {
