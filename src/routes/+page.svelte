@@ -8,6 +8,7 @@
 	$: totalPagado = $estadisticasCentros.reduce((acc, s) => acc + s.boletosPagados, 0);
 	$: totalNoPagado = $estadisticasCentros.reduce((acc, s) => acc + s.boletosNoPagados, 0);
 	$: totalRegresado = $estadisticasCentros.reduce((acc, s) => acc + s.boletosRegresados, 0);
+	$: totalPerdido = $estadisticasCentros.reduce((acc, s) => acc + s.boletosPerdidos, 0);
 	$: totalRecaudado = $estadisticasCentros.reduce((acc, s) => acc + s.totalRecaudado, 0);
 	$: totalPorCobrar = $estadisticasCentros.reduce((acc, s) => acc + s.totalPorCobrar, 0);
 	$: totalRegalos = $estadisticasCentros.reduce((acc, s) => acc + s.totalRegalos, 0);
@@ -15,14 +16,15 @@
 	$: pctPagado = totalBoletos > 0 ? (totalPagado / totalBoletos) * 100 : 0;
 	$: pctNoPagado = totalBoletos > 0 ? (totalNoPagado / totalBoletos) * 100 : 0;
 	$: pctRegresado = totalBoletos > 0 ? (totalRegresado / totalBoletos) * 100 : 0;
+	$: pctPerdido = totalBoletos > 0 ? (totalPerdido / totalBoletos) * 100 : 0;
 
 	$: topComunidades = [...$estadisticasComunidades]
-		.sort((a, b) => b.totalRecaudado - a.totalRecaudado)
-		.slice(0, 5);
+		.filter(c => c.boletosNoPagados > 0)
+		.sort((a, b) => b.boletosNoPagados - a.boletosNoPagados);
 
 	$: topCentros = [...$estadisticasCentros]
-		.sort((a, b) => b.totalRecaudado - a.totalRecaudado)
-		.slice(0, 5);
+		.filter(c => c.boletosNoPagados > 0)
+		.sort((a, b) => b.boletosNoPagados - a.boletosNoPagados);
 
 	function mxn(n: number) {
 		return '$' + n.toLocaleString('es-MX');
@@ -102,14 +104,14 @@
 	<!-- Rankings -->
 	<div class="rankings">
 		<div class="card">
-			<h2 class="card-title">Centros · mayor recaudación</h2>
+			<h2 class="card-title">Centros · boletos pendientes</h2>
 			{#if topCentros.length > 0}
 				<div class="ranking-list">
 					{#each topCentros as centro, i}
 						<div class="ranking-row">
 							<span class="rank-pos">{i + 1}</span>
 							<span class="rank-name">{centro.nombreCentro}</span>
-							<span class="rank-value">{mxn(centro.totalRecaudado)}</span>
+							<span class="rank-value">{centro.boletosNoPagados} boleto{centro.boletosNoPagados !== 1 ? 's' : ''}</span>
 						</div>
 					{/each}
 				</div>
@@ -119,7 +121,7 @@
 		</div>
 
 		<div class="card">
-			<h2 class="card-title">Comunidades · mayor recaudación</h2>
+			<h2 class="card-title">Comunidades · boletos pendientes</h2>
 			{#if topComunidades.length > 0}
 				<div class="ranking-list">
 					{#each topComunidades as com, i}
@@ -129,7 +131,7 @@
 								<span class="rank-name">{com.nombreComunidad}</span>
 								<span class="rank-sub">{com.nombreCentro}</span>
 							</div>
-							<span class="rank-value">{mxn(com.totalRecaudado)}</span>
+							<span class="rank-value">{com.boletosNoPagados} boleto{com.boletosNoPagados !== 1 ? 's' : ''}</span>
 						</div>
 					{/each}
 				</div>
@@ -188,7 +190,7 @@
 	/* Metrics */
 	.metrics {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: repeat(5, 1fr);
 		gap: 0.75rem;
 	}
 
@@ -295,6 +297,7 @@
 	.progress-fill.success { background: #10b981; }
 	.progress-fill.danger { background: #ef4444; }
 	.progress-fill.neutral { background: #d4d4d8; }
+	.progress-fill.warning { background: #f59e0b; }
 
 	.progress-legend {
 		display: flex;
@@ -325,6 +328,7 @@
 	.legend-dot.success { background: #10b981; }
 	.legend-dot.danger { background: #ef4444; }
 	.legend-dot.neutral { background: #d4d4d8; }
+	.legend-dot.warning { background: #f59e0b; }
 
 	/* Rankings */
 	.rankings {
@@ -403,6 +407,12 @@
 		font-size: 0.875rem;
 		text-align: center;
 		padding: 2rem 0;
+	}
+
+	@media (max-width: 1100px) {
+		.metrics {
+			grid-template-columns: repeat(3, 1fr);
+		}
 	}
 
 	@media (max-width: 900px) {

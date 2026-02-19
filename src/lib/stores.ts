@@ -251,6 +251,9 @@ export const estadisticasCentros = derived(centros, $centros => {
 		const boletosRegresados = c.comunidades.reduce(
 			(acc, com) => acc + com.boletos.filter(b => b.estado === 'regresado').length, 0
 		);
+		const boletosPerdidos = c.comunidades.reduce(
+			(acc, com) => acc + com.boletos.filter(b => b.estado === 'perdido').length, 0
+		);
 		const totalRegalos = c.comunidades.reduce((acc, com) => acc + com.regalos.length, 0);
 
 		return {
@@ -260,6 +263,7 @@ export const estadisticasCentros = derived(centros, $centros => {
 			boletosPagados,
 			boletosNoPagados,
 			boletosRegresados,
+			boletosPerdidos,
 			totalRecaudado: boletosPagados * PRECIO_BOLETO,
 			totalPorCobrar: boletosNoPagados * PRECIO_BOLETO,
 			totalRegalos
@@ -275,6 +279,7 @@ export const estadisticasComunidades = derived(centros, $centros => {
 			const boletosPagados = com.boletos.filter(b => b.estado === 'pagado').length;
 			const boletosNoPagados = com.boletos.filter(b => b.estado === 'no_pagado').length;
 			const boletosRegresados = com.boletos.filter(b => b.estado === 'regresado').length;
+			const boletosPerdidos = com.boletos.filter(b => b.estado === 'perdido').length;
 
 			stats.push({
 				comunidadId: com.id,
@@ -284,6 +289,7 @@ export const estadisticasComunidades = derived(centros, $centros => {
 				boletosPagados,
 				boletosNoPagados,
 				boletosRegresados,
+				boletosPerdidos,
 				totalRecaudado: boletosPagados * PRECIO_BOLETO,
 				totalPorCobrar: boletosNoPagados * PRECIO_BOLETO,
 				totalRegalos: com.regalos.length

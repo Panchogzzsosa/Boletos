@@ -1,6 +1,6 @@
 // Tipos de datos para el sistema de boletos y regalos
 
-export type EstadoBoleto = 'pagado' | 'no_pagado' | 'regresado';
+export type EstadoBoleto = 'pagado' | 'no_pagado' | 'regresado' | 'perdido';
 
 export interface Boleto {
 	id: string;
@@ -40,6 +40,7 @@ export interface EstadisticasCentro {
 	boletosPagados: number;
 	boletosNoPagados: number;
 	boletosRegresados: number;
+	boletosPerdidos: number;
 	totalRecaudado: number;
 	totalPorCobrar: number;
 	totalRegalos: number;
@@ -53,6 +54,7 @@ export interface EstadisticasComunidad {
 	boletosPagados: number;
 	boletosNoPagados: number;
 	boletosRegresados: number;
+	boletosPerdidos: number;
 	totalRecaudado: number;
 	totalPorCobrar: number;
 	totalRegalos: number;

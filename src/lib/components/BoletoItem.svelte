@@ -8,8 +8,8 @@
 	export let puedeEditar: boolean = true;
 </script>
 
-<div class="boleto-row" class:pagado={boleto.estado === 'pagado'} class:regresado={boleto.estado === 'regresado'}>
-	<span class="numero">#{boleto.numero}</span>
+<div class="boleto-row" class:pagado={boleto.estado === 'pagado'} class:regresado={boleto.estado === 'regresado'} class:perdido={boleto.estado === 'perdido'}>
+	<span class="numero">#{String(boleto.numero).padStart(3, '0')}</span>
 	<span class="precio">${PRECIO_BOLETO}</span>
 
 	<div class="segmented">
@@ -31,6 +31,12 @@
 			on:click={() => puedeEditar && onChangeEstado('regresado')}
 			disabled={!puedeEditar}
 		>Regresado</button>
+		<button
+			class="seg-btn"
+			class:active-warning={boleto.estado === 'perdido'}
+			on:click={() => puedeEditar && onChangeEstado('perdido')}
+			disabled={!puedeEditar}
+		>Perdido</button>
 	</div>
 
 	{#if puedeEditar}
@@ -61,6 +67,11 @@
 
 	.boleto-row.regresado {
 		opacity: 0.6;
+	}
+
+	.boleto-row.perdido {
+		border-color: #fde68a;
+		background: #fef3c7;
 	}
 
 	.numero {
@@ -120,6 +131,11 @@
 
 	.seg-btn.active-neutral {
 		background: #6b6b6b;
+		color: #fff;
+	}
+
+	.seg-btn.active-warning {
+		background: #f59e0b;
 		color: #fff;
 	}
 

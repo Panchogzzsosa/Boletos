@@ -67,7 +67,7 @@
 		}
 	}
 
-	function cambiarEstado(boletoId: string, estado: 'pagado' | 'no_pagado' | 'regresado') {
+	function cambiarEstado(boletoId: string, estado: 'pagado' | 'no_pagado' | 'regresado' | 'perdido') {
 		centros.cambiarEstadoBoleto(centroId, comunidadSel.comunidadId, boletoId, estado);
 	}
 
@@ -143,6 +143,10 @@
 					<span class="stat-num">{stats.boletosRegresados}</span>
 					<span class="stat-lbl">Regresados</span>
 				</div>
+				<div class="stat-block warning">
+					<span class="stat-num">{stats.boletosPerdidos}</span>
+					<span class="stat-lbl">Perdidos</span>
+				</div>
 				<div class="stat-block money">
 					<span class="stat-num">${stats.totalRecaudado.toLocaleString()}</span>
 					<span class="stat-lbl">Recaudado</span>
@@ -165,6 +169,7 @@
 					<div class="progress-fill success" style="width: {(stats.boletosPagados / stats.totalBoletos) * 100}%"></div>
 					<div class="progress-fill danger" style="width: {(stats.boletosNoPagados / stats.totalBoletos) * 100}%"></div>
 					<div class="progress-fill neutral" style="width: {(stats.boletosRegresados / stats.totalBoletos) * 100}%"></div>
+					<div class="progress-fill warning" style="width: {(stats.boletosPerdidos / stats.totalBoletos) * 100}%"></div>
 				</div>
 			</div>
 		{/if}
@@ -188,6 +193,7 @@
 					{@const pagados = com.boletos.filter(b => b.estado === 'pagado').length}
 					{@const noPagados = com.boletos.filter(b => b.estado === 'no_pagado').length}
 					{@const regresados = com.boletos.filter(b => b.estado === 'regresado').length}
+					{@const perdidos = com.boletos.filter(b => b.estado === 'perdido').length}
 					{@const pct = com.boletos.length > 0 ? Math.round((pagados / com.boletos.length) * 100) : 0}
 
 					<div class="com-card">
@@ -224,6 +230,10 @@
 								<span class="com-stat-val muted">{regresados}</span>
 								<span class="com-stat-lbl">Regresados</span>
 							</div>
+							<div class="com-stat">
+								<span class="com-stat-val warning">{perdidos}</span>
+								<span class="com-stat-lbl">Perdidos</span>
+							</div>
 						</div>
 
 						<!-- Barra de progreso -->
@@ -233,6 +243,7 @@
 									<div class="com-progress-fill success" style="width: {(pagados / com.boletos.length) * 100}%"></div>
 									<div class="com-progress-fill danger" style="width: {(noPagados / com.boletos.length) * 100}%"></div>
 									<div class="com-progress-fill neutral" style="width: {(regresados / com.boletos.length) * 100}%"></div>
+									<div class="com-progress-fill warning" style="width: {(perdidos / com.boletos.length) * 100}%"></div>
 								</div>
 								<span class="com-pct">{pct}%</span>
 							</div>
@@ -452,6 +463,7 @@
 	.stat-block.success .stat-num { color: #10b981; }
 	.stat-block.danger .stat-num { color: #ef4444; }
 	.stat-block.neutral .stat-num { color: #a1a1aa; }
+	.stat-block.warning .stat-num { color: #f59e0b; }
 
 	.stat-lbl {
 		font-size: 0.6875rem;
@@ -502,6 +514,7 @@
 	.progress-fill.success { background: #10b981; }
 	.progress-fill.danger { background: #ef4444; }
 	.progress-fill.neutral { background: #e4e4e7; }
+	.progress-fill.warning { background: #f59e0b; }
 
 	/* Sección comunidades */
 	.section-header {
@@ -615,6 +628,7 @@
 	.com-stat-val.success { color: #10b981; }
 	.com-stat-val.danger { color: #ef4444; }
 	.com-stat-val.muted { color: #d4d4d8; }
+	.com-stat-val.warning { color: #f59e0b; }
 
 	.com-stat-lbl {
 		font-size: 0.6875rem;
@@ -644,6 +658,7 @@
 	.com-progress-fill.success { background: #10b981; }
 	.com-progress-fill.danger { background: #ef4444; }
 	.com-progress-fill.neutral { background: #e4e4e7; }
+	.com-progress-fill.warning { background: #f59e0b; }
 
 	.com-pct {
 		font-size: 0.75rem;

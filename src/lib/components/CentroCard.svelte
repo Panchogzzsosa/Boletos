@@ -47,6 +47,10 @@
 				<span class="stat-val muted">{stats.boletosRegresados}</span>
 				<span class="stat-lbl">Regresados</span>
 			</div>
+			<div class="stat">
+				<span class="stat-val warning">{stats.boletosPerdidos}</span>
+				<span class="stat-lbl">Perdidos</span>
+			</div>
 		</div>
 
 		{#if stats.totalBoletos > 0}
@@ -55,6 +59,7 @@
 					<div class="progress-fill success" style="width: {(stats.boletosPagados / stats.totalBoletos) * 100}%"></div>
 					<div class="progress-fill danger" style="width: {(stats.boletosNoPagados / stats.totalBoletos) * 100}%"></div>
 					<div class="progress-fill neutral" style="width: {(stats.boletosRegresados / stats.totalBoletos) * 100}%"></div>
+					<div class="progress-fill warning" style="width: {(stats.boletosPerdidos / stats.totalBoletos) * 100}%"></div>
 				</div>
 				<span class="pct-lbl">{pct}%</span>
 			</div>
@@ -173,6 +178,7 @@
 	.stat-val.success { color: #10b981; }
 	.stat-val.danger { color: #ef4444; }
 	.stat-val.muted { color: #d4d4d8; }
+	.stat-val.warning { color: #f59e0b; }
 
 	.stat-lbl {
 		font-size: 0.6875rem;
@@ -205,6 +211,7 @@
 	.progress-fill.success { background: #10b981; }
 	.progress-fill.danger { background: #ef4444; }
 	.progress-fill.neutral { background: #e4e4e7; }
+	.progress-fill.warning { background: #f59e0b; }
 
 	.pct-lbl {
 		font-size: 0.75rem;
