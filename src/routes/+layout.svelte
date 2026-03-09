@@ -4,6 +4,8 @@
 	import { goto } from '$app/navigation';
 	import { centros } from '$lib/stores';
 	import { auth, esAdmin } from '$lib/auth';
+	import { toast } from '$lib/toast';
+	import Toast from '$lib/components/Toast.svelte';
 
 	let centrosCargados = false;
 
@@ -89,6 +91,16 @@
 		</main>
 	</div>
 {/if}
+
+<!-- Contenedor de notificaciones toast - siempre disponible -->
+{#each $toast as t (t.id)}
+	<Toast
+		message={t.message}
+		type={t.type}
+		duration={t.duration}
+		onClose={() => toast.remove(t.id)}
+	/>
+{/each}
 
 <style>
 	:global(*, *::before, *::after) {

@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { get } from 'svelte/store';
 	import { centros, estadisticasComunidades } from '$lib/stores';
+	import { toast } from '$lib/toast';
 	import ComunidadCard from '$lib/components/ComunidadCard.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import BoletoItem from '$lib/components/BoletoItem.svelte';
@@ -16,6 +18,21 @@
 
 	let boletoInput = { rangoInicio: '', rangoFin: '', single: '' };
 	let regaloDescripcion = '';
+
+	function existeBoletoGlobal(numero: number): { existe: boolean; comunidad?: string; centro?: string } {
+		// Obtener datos actuales del store usando get() para asegurar valor fresco
+		const centrosData = get(centros);
+		
+		for (const centro of centrosData) {
+			for (const com of centro.comunidades) {
+				const boletoExistente = com.boletos.find(b => b.numero === numero);
+				if (boletoExistente) {
+					return { existe: true, comunidad: com.nombre, centro: centro.nombre };
+				}
+			}
+		}
+		return { existe: false };
+	}
 
 	$: todasComunidades = $centros.flatMap(c =>
 		c.comunidades.map(com => ({ ...com, centroNombre: c.nombre, centroId: c.id }))
@@ -38,22 +55,65 @@
 		modal.show = false;
 	}
 
-	function agregarRango() {
+	async function agregarRango() {
 		const inicio = parseInt(boletoInput.rangoInicio);
 		const fin = parseInt(boletoInput.rangoFin);
 		if (inicio && fin && inicio <= fin) {
 			const nums: number[] = [];
-			for (let i = inicio; i <= fin; i++) nums.push(i);
-			centros.agregarBoletos(modal.centroId, modal.comunidadId, nums);
-			boletoInput.rangoInicio = '';
-			boletoInput.rangoFin = '';
+			const duplicadosInfo: Array<{ num: number; comunidad: string; centro: string }> = [];
+			
+			for (let i = inicio; i <= fin; i++) {
+				const resultado = existeBoletoGlobal(i);
+				if (resultado.existe) {
+					duplicadosInfo.push({ 
+						num: i, 
+						comunidad: resultado.comunidad!, 
+						centro: resultado.centro! 
+					});
+				} else {
+					nums.push(i);
+				}
+			}
+			
+			if (duplicadosInfo.length > 0) {
+				// Mostrar los primeros 3 duplicados en el mensaje
+				const mostrar = duplicadosInfo.slice(0, 3);
+				const resto = duplicadosInfo.length - 3;
+				let mensajes = mostrar.map(d => `Boleto ${d.num.toString().padStart(3, '0')} en ${d.comunidad}`);
+				if (resto > 0) {
+					mensajes.push(`y ${resto} más...`);
+				}
+				toast.error(`Ya registrados: ${mensajes.join(', ')}`, 4000);
+			}
+			
+			if (nums.length > 0) {
+				const resultado = await centros.agregarBoletos(modal.centroId, modal.comunidadId, nums);
+				if (resultado?.agregados?.length > 0) {
+					boletoInput.rangoInicio = '';
+					boletoInput.rangoFin = '';
+				}
+			}
 		}
 	}
 
-	function agregarIndividual() {
+	async function agregarIndividual() {
+		// Log simple para verificar
+		window.alert('DEBUG: Click detectado');
+		
 		const num = parseInt(boletoInput.single);
-		if (num) {
-			centros.agregarBoletos(modal.centroId, modal.comunidadId, [num]);
+		
+		if (!num || isNaN(num)) return;
+		
+		const resultado = existeBoletoGlobal(num);
+		
+		if (resultado.existe) {
+			const mensaje = `El boleto ${num.toString().padStart(3, '0')} ya está registrado en ${resultado.comunidad}`;
+			toast.error(mensaje);
+			return;
+		}
+		
+		const resultadoStore = await centros.agregarBoletos(modal.centroId, modal.comunidadId, [num]);
+		if (resultadoStore?.agregados?.length > 0) {
 			boletoInput.single = '';
 		}
 	}
@@ -174,7 +234,7 @@
 							bind:value={boletoInput.single}
 							on:keypress={(e) => e.key === 'Enter' && agregarIndividual()}
 						/>
-						<button class="btn-dark sm" on:click={agregarIndividual}>+</button>
+						<button class="btn-dark sm" on:click={() => { console.log('CLICK'); agregarIndividual(); }}>+</button>
 					</div>
 				</div>
 

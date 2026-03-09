@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import { supabase } from './supabase';
 import type { Centro, Comunidad, Boleto, Regalo, EstadisticasCentro, EstadisticasComunidad } from './types';
 import { PRECIO_BOLETO } from './types';
@@ -125,7 +125,28 @@ function createCentrosStore() {
 
 		// Agregar boletos en rango o individual
 		agregarBoletos: async (centroId: string, comunidadId: string, numeros: number[]) => {
-			const rows = numeros.map(numero => ({
+			// Obtener todos los boletos existentes de TODAS las comunidades (validación global)
+			const centrosData = get({ subscribe });
+			const boletosExistentesGlobales: number[] = [];
+			
+			for (const centro of centrosData) {
+				for (const com of centro.comunidades) {
+					for (const boleto of com.boletos) {
+						boletosExistentesGlobales.push(boleto.numero);
+					}
+				}
+			}
+
+			// Filtrar números que ya existen globalmente
+			const numerosNuevos = numeros.filter(n => !boletosExistentesGlobales.includes(n));
+			const numerosDuplicados = numeros.filter(n => boletosExistentesGlobales.includes(n));
+			
+			// Si todos los números ya existen, no hacer nada
+			if (numerosNuevos.length === 0) {
+				return { agregados: [], duplicados: numerosDuplicados };
+			}
+
+			const rows = numerosNuevos.map(numero => ({
 				numero,
 				estado: 'no_pagado',
 				comunidad_id: comunidadId
@@ -152,6 +173,9 @@ function createCentrosStore() {
 					)
 				}
 			));
+
+			// Retornar números que fueron agregados y duplicados
+			return { agregados: numerosNuevos, duplicados: numerosDuplicados };
 		},
 
 		// Cambiar estado de boleto
