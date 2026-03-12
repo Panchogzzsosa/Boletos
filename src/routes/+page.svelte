@@ -4,7 +4,72 @@
 	import type { Boleto } from '$lib/types';
 	import Modal from '$lib/components/Modal.svelte';
 
-	let modalActivo: 'pagados' | 'pendientes' | 'regalos' | 'regresados' | 'perdidos' | null = null;
+	let modalActivo: 'pagados' | 'pendientes' | 'regalos' | 'regresados' | 'perdidos' | 'busqueda' | null = null;
+	
+	// Búsqueda de boleto
+	let numeroBoletoBusqueda: string = '';
+	let resultadoBusqueda: {
+		numero: number;
+		centro: string;
+		comunidad: string;
+		estado: Boleto['estado'];
+		found: boolean;
+	} | null = null;
+	
+	function buscarBoleto() {
+		const numero = parseInt(numeroBoletoBusqueda);
+		if (isNaN(numero) || numero <= 0) {
+			resultadoBusqueda = null;
+			return;
+		}
+
+		for (const centro of $centros) {
+			for (const com of centro.comunidades) {
+				const boleto = com.boletos.find(b => b.numero === numero);
+				if (boleto) {
+					resultadoBusqueda = {
+						numero: boleto.numero,
+						centro: centro.nombre,
+						comunidad: com.nombre,
+						estado: boleto.estado,
+						found: true
+					};
+					abrirModal('busqueda');
+					return;
+				}
+			}
+		}
+
+		// No encontrado
+		resultadoBusqueda = {
+			numero,
+			centro: '',
+			comunidad: '',
+			estado: 'no_pagado',
+			found: false
+		};
+		abrirModal('busqueda');
+	}
+	
+	function getEstadoLabel(estado: Boleto['estado']): string {
+		const labels: Record<Boleto['estado'], string> = {
+			'pagado': 'Pagado',
+			'no_pagado': 'No pagado',
+			'regresado': 'Regresado',
+			'perdido': 'Perdido'
+		};
+		return labels[estado];
+	}
+	
+	function getEstadoColor(estado: Boleto['estado']): string {
+		const colors: Record<Boleto['estado'], string> = {
+			'pagado': '#10b981',
+			'no_pagado': '#ef4444',
+			'regresado': '#6b7280',
+			'perdido': '#f59e0b'
+		};
+		return colors[estado];
+	}
 	
 	// Estado para controlar qué items están expandidos en cada modal
 	let expandidosPagadosCentros: Set<string> = new Set();
@@ -150,6 +215,38 @@
 		</div>
 		<a href="/centros" class="btn-primary">Administrar centros</a>
 	</header>
+
+	<!-- Búsqueda de boleto -->
+	<div class="card busqueda-section">
+		<div class="busqueda-content">
+			<div class="busqueda-icon">
+				<svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+					<path d="M11.7422 10.3439C12.5329 9.2673 13 7.9382 13 6.5C13 2.91015 10.0899 0 6.5 0C2.91015 0 0 2.91015 0 6.5C0 10.0899 2.91015 13 6.5 13C7.9382 13 9.2673 12.5329 10.3439 11.7422L14.1464 15.5446C14.3417 15.7399 14.6583 15.7399 14.8536 15.5446L15.5446 14.8536C15.7399 14.6583 15.7399 14.3417 15.5446 14.1464L11.7422 10.3439ZM6.5 11C4.01472 11 2 8.98528 2 6.5C2 4.01472 4.01472 2 6.5 2C8.98528 2 11 4.01472 11 6.5C11 8.98528 8.98528 11 6.5 11Z" fill="currentColor"/>
+				</svg>
+			</div>
+			<div class="busqueda-input-wrapper">
+				<label for="busqueda-boleto">Buscar boleto por número</label>
+				<div class="busqueda-input-group">
+					<input
+						id="busqueda-boleto"
+						type="number"
+						placeholder="Ingresa el número de boleto..."
+						bind:value={numeroBoletoBusqueda}
+						on:keypress={(e) => e.key === 'Enter' && buscarBoleto()}
+						min="1"
+						class="busqueda-input"
+					/>
+					<button 
+						class="btn-buscar"
+						on:click={buscarBoleto}
+						disabled={!numeroBoletoBusqueda || parseInt(numeroBoletoBusqueda) <= 0}
+					>
+						Buscar
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
 
 	<!-- Métricas principales -->
 	<div class="metrics">
@@ -720,6 +817,45 @@
 	</div>
 </Modal>
 
+<!-- Modal Resultado Búsqueda -->
+<Modal show={modalActivo === 'busqueda'} title={resultadoBusqueda?.found ? `Boleto #${resultadoBusqueda.numero} encontrado` : 'Boleto no encontrado'} onClose={cerrarModal}>
+	<div class="modal-content busqueda-modal">
+		{#if resultadoBusqueda}
+			{#if resultadoBusqueda.found}
+				<div class="resultado-encontrado">
+					<div class="resultado-numero" style="color: {getEstadoColor(resultadoBusqueda.estado)}">
+						<span class="numero">#{resultadoBusqueda.numero}</span>
+						<span class="estado-badge" style="background: {getEstadoColor(resultadoBusqueda.estado)}20; color: {getEstadoColor(resultadoBusqueda.estado)}">
+							{getEstadoLabel(resultadoBusqueda.estado)}
+						</span>
+					</div>
+					
+					<div class="resultado-info">
+						<div class="info-item">
+							<span class="info-label">Centro</span>
+							<span class="info-value">{resultadoBusqueda.centro}</span>
+						</div>
+						<div class="info-item">
+							<span class="info-label">Comunidad</span>
+							<span class="info-value">{resultadoBusqueda.comunidad}</span>
+						</div>
+					</div>
+				</div>
+			{:else}
+				<div class="resultado-no-encontrado">
+					<div class="no-encontrado-icon">
+						<svg width="48" height="48" viewBox="0 0 16 16" fill="none">
+							<path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 12a1 1 0 110-2 1 1 0 010 2zm0-3a1 1 0 01-1-1V4a1 1 0 012 0v4a1 1 0 01-1 1z" fill="#d4d4d8"/>
+						</svg>
+					</div>
+					<p class="no-encontrado-texto">El boleto <strong>#{resultadoBusqueda.numero}</strong> no está registrado en el sistema.</p>
+					<p class="no-encontrado-sub">Verifica que el número sea correcto o que el boleto haya sido agregado.</p>
+				</div>
+			{/if}
+		{/if}
+	</div>
+</Modal>
+
 <style>
 	.dashboard {
 		display: flex;
@@ -1208,6 +1344,197 @@
 		color: #a1a1aa;
 	}
 
+	/* Búsqueda Section */
+	.busqueda-section {
+		background: #fff;
+		border: 1px solid #e5e5e5;
+		border-radius: 12px;
+		padding: 1rem 1.25rem;
+	}
+
+	.busqueda-content {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.busqueda-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		background: #f4f4f5;
+		border-radius: 10px;
+		color: #6b6b6b;
+		flex-shrink: 0;
+	}
+
+	.busqueda-input-wrapper {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+	}
+
+	.busqueda-input-wrapper label {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: #0f0f0f;
+	}
+
+	.busqueda-input-group {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.busqueda-input {
+		flex: 1;
+		padding: 0.625rem 0.875rem;
+		font-size: 0.9375rem;
+		border: 1px solid #e5e5e5;
+		border-radius: 8px;
+		background: #fff;
+		color: #0f0f0f;
+		min-width: 0;
+	}
+
+	.busqueda-input:focus {
+		outline: none;
+		border-color: #0f0f0f;
+	}
+
+	.busqueda-input::placeholder {
+		color: #a1a1aa;
+	}
+
+	.btn-buscar {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.625rem 1.25rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		background: #0f0f0f;
+		color: #fff;
+		border: none;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: background 0.15s ease;
+		white-space: nowrap;
+	}
+
+	.btn-buscar:hover:not(:disabled) {
+		background: #27272a;
+	}
+
+	.btn-buscar:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	/* Modal Búsqueda */
+	.busqueda-modal {
+		padding: 0.5rem 0;
+	}
+
+	.resultado-encontrado {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		align-items: center;
+		text-align: center;
+	}
+
+	.resultado-numero {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.resultado-numero .numero {
+		font-size: 3rem;
+		font-weight: 800;
+		letter-spacing: -0.03em;
+	}
+
+	.estado-badge {
+		display: inline-flex;
+		padding: 0.375rem 1rem;
+		font-size: 0.875rem;
+		font-weight: 600;
+		border-radius: 100px;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.resultado-info {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		width: 100%;
+		max-width: 320px;
+		padding: 1.25rem;
+		background: #f9fafb;
+		border-radius: 12px;
+	}
+
+	.info-item {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		text-align: left;
+	}
+
+	.info-label {
+		font-size: 0.6875rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: #a1a1aa;
+	}
+
+	.info-value {
+		font-size: 1.125rem;
+		font-weight: 600;
+		color: #0f0f0f;
+	}
+
+	.resultado-no-encontrado {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+		text-align: center;
+		padding: 1rem 0;
+	}
+
+	.no-encontrado-icon {
+		width: 64px;
+		height: 64px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #f4f4f5;
+		border-radius: 50%;
+	}
+
+	.no-encontrado-texto {
+		font-size: 1rem;
+		color: #0f0f0f;
+		margin: 0;
+	}
+
+	.no-encontrado-texto strong {
+		font-weight: 700;
+	}
+
+	.no-encontrado-sub {
+		font-size: 0.875rem;
+		color: #6b6b6b;
+		margin: 0;
+	}
+
 	@media (max-width: 1100px) {
 		.metrics {
 			grid-template-columns: repeat(3, 1fr);
@@ -1229,6 +1556,20 @@
 		}
 		.metrics {
 			grid-template-columns: 1fr 1fr;
+		}
+		.busqueda-content {
+			flex-direction: column;
+			align-items: stretch;
+		}
+		.busqueda-icon {
+			align-self: flex-start;
+		}
+		.busqueda-input-group {
+			flex-direction: column;
+		}
+		.btn-buscar {
+			width: 100%;
+			justify-content: center;
 		}
 	}
 

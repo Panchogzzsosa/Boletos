@@ -2,9 +2,14 @@
 	import { onMount } from 'svelte';
 	import { centros, estadisticasCentros, transacciones, resumenCaja } from '$lib/stores';
 	import { PRECIO_BOLETO } from '$lib/types';
-	import type { TipoTransaccion, ConceptoTransaccion } from '$lib/types';
+	import type { TipoTransaccion, ConceptoTransaccion, Transaccion } from '$lib/types';
 	import { auth } from '$lib/auth';
 	import Modal from '$lib/components/Modal.svelte';
+
+	// Tipo extendido para transacciones virtuales (entradas de boletos automáticas)
+	interface TransaccionVirtual extends Transaccion {
+		isVirtual?: boolean;
+	}
 
 	let modalActivo: 'nueva-entrada' | 'nueva-salida' | null = null;
 	let tipoTransaccion: TipoTransaccion = 'entrada';
@@ -50,10 +55,10 @@
 		fecha: new Date().toISOString().split('T')[0],
 		createdAt: new Date().toISOString(),
 		isVirtual: true
-	}] : [];
+	}] as TransaccionVirtual[] : [];
 
 	// Combinar entradas de boletos con transacciones manuales
-	$: todasLasTransacciones = [...entradasBoletos, ...transaccionesFiltradas];
+	$: todasLasTransacciones = [...entradasBoletos, ...transaccionesFiltradas] as TransaccionVirtual[];
 
 	function mxn(n: number) {
 		return '$' + n.toLocaleString('es-MX');
