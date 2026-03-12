@@ -36,7 +36,8 @@
 
 	const navItems = [
 		{ href: '/', label: 'Inicio' },
-		{ href: '/centros', label: 'Centros' }
+		{ href: '/centros', label: 'Centros' },
+		{ href: '/finanzas', label: 'Finanzas' }
 	];
 </script>
 

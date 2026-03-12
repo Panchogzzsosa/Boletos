@@ -59,3 +59,25 @@ export interface EstadisticasComunidad {
 	totalPorCobrar: number;
 	totalRegalos: number;
 }
+
+// Tipos para control de caja / transacciones
+export type TipoTransaccion = 'entrada' | 'salida';
+export type ConceptoTransaccion = 'boletos' | 'venta' | 'donacion' | 'otro' | 'gasto' | 'compra' | 'pago';
+
+export interface Transaccion {
+	id: string;
+	tipo: TipoTransaccion;
+	concepto: ConceptoTransaccion;
+	monto: number;
+	descripcion: string;
+	fecha: string;
+	createdAt: string;
+}
+
+export interface ResumenCaja {
+	totalEntradas: number;
+	totalSalidas: number;
+	balance: number;
+	entradasBoletos: number;
+	entradasManuales: number;
+}

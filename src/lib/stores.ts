@@ -1,6 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import { supabase } from './supabase';
-import type { Centro, Comunidad, Boleto, Regalo, EstadisticasCentro, EstadisticasComunidad } from './types';
+import type { Centro, Comunidad, Boleto, Regalo, EstadisticasCentro, EstadisticasComunidad, Transaccion, TipoTransaccion, ConceptoTransaccion } from './types';
 import { PRECIO_BOLETO } from './types';
 
 function createCentrosStore() {
@@ -322,3 +322,143 @@ export const estadisticasComunidades = derived(centros, $centros => {
 	});
 	return stats;
 });
+
+// Store para transacciones de caja
+function createTransaccionesStore() {
+	const { subscribe, set, update } = writable<Transaccion[]>([]);
+
+	return {
+		subscribe,
+
+		// Cargar transacciones desde Supabase
+		cargarTransacciones: async () => {
+			const { data, error } = await supabase
+				.from('transacciones')
+				.select('*')
+				.order('created_at', { ascending: false });
+			
+			if (error) {
+				console.error('Error cargando transacciones:', error);
+				return;
+			}
+
+			const transacciones: Transaccion[] = (data ?? []).map(t => ({
+				id: t.id,
+				tipo: t.tipo as TipoTransaccion,
+				concepto: t.concepto as ConceptoTransaccion,
+				monto: t.monto,
+				descripcion: t.descripcion,
+				fecha: t.fecha,
+				createdAt: t.created_at
+			}));
+
+			set(transacciones);
+		},
+
+		// Agregar transacción
+		agregarTransaccion: async (
+			tipo: TipoTransaccion,
+			concepto: ConceptoTransaccion,
+			monto: number,
+			descripcion: string,
+			fecha: string = new Date().toISOString().split('T')[0]
+		) => {
+			const { data, error } = await supabase
+				.from('transacciones')
+				.insert({ tipo, concepto, monto, descripcion, fecha })
+				.select()
+				.single();
+
+			if (error || !data) {
+				console.error('Error agregando transacción:', error);
+				return null;
+			}
+
+			const nueva: Transaccion = {
+				id: data.id,
+				tipo: data.tipo,
+				concepto: data.concepto,
+				monto: data.monto,
+				descripcion: data.descripcion,
+				fecha: data.fecha,
+				createdAt: data.created_at
+			};
+
+			update(transacciones => [nueva, ...transacciones]);
+			return nueva;
+		},
+
+		// Eliminar transacción
+		eliminarTransaccion: async (id: string) => {
+			const { error } = await supabase
+				.from('transacciones')
+				.delete()
+				.eq('id', id);
+
+			if (error) {
+				console.error('Error eliminando transacción:', error);
+				return;
+			}
+
+			update(transacciones => transacciones.filter(t => t.id !== id));
+		},
+
+		// Sincronizar entradas de boletos automáticamente
+		sincronizarEntradasBoletos: async (totalRecaudado: number) => {
+			// Verificar si ya existe una entrada de boletos por hoy
+			const hoy = new Date().toISOString().split('T')[0];
+			const { data: existentes } = await supabase
+				.from('transacciones')
+				.select('*')
+				.eq('concepto', 'boletos')
+				.eq('fecha', hoy);
+
+			const totalExistente = (existentes ?? []).reduce((acc, t) => acc + t.monto, 0);
+			
+			// Si hay diferencia, crear nueva transacción
+			if (totalRecaudado > totalExistente) {
+				const diferencia = totalRecaudado - totalExistente;
+				await supabase
+					.from('transacciones')
+					.insert({
+						tipo: 'entrada',
+						concepto: 'boletos',
+						monto: diferencia,
+						descripcion: 'Venta de boletos',
+						fecha: hoy
+					});
+			}
+		}
+	};
+}
+
+export const transacciones = createTransaccionesStore();
+
+// Store derivado para resumen de caja
+export const resumenCaja = derived(
+	[estadisticasCentros, transacciones],
+	([$estadisticasCentros, $transacciones]) => {
+		// Entradas automáticas de boletos pagados
+		const entradasBoletos = $estadisticasCentros.reduce((acc, s) => acc + s.totalRecaudado, 0);
+		
+		// Entradas manuales (no boletos)
+		const entradasManuales = $transacciones
+			.filter(t => t.tipo === 'entrada' && t.concepto !== 'boletos')
+			.reduce((acc, t) => acc + t.monto, 0);
+		
+		// Salidas
+		const salidas = $transacciones
+			.filter(t => t.tipo === 'salida')
+			.reduce((acc, t) => acc + t.monto, 0);
+
+		const totalEntradas = entradasBoletos + entradasManuales;
+
+		return {
+			totalEntradas,
+			totalSalidas: salidas,
+			balance: totalEntradas - salidas,
+			entradasBoletos,
+			entradasManuales
+		};
+	}
+);

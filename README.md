@@ -9,6 +9,7 @@ Aplicación web para administrar boletos y regalos organizados por centros y com
 - **Boletos** — gestión con 3 estados: Pagado ($560 MXN) · No Pagado · Regresado
 - **Regalos** — registro de regalos por comunidad
 - **Dashboard** — estadísticas en tiempo real: recaudación total, por cobrar, rankings de centros y comunidades
+- **Finanzas** — control de caja con entradas automáticas de boletos y registro manual de entradas/salidas
 - **Autenticación** — login por nombre de usuario con roles (admin, editor, viewer)
 - **Control de acceso** — solo admins y editores pueden modificar datos
 
@@ -39,6 +40,7 @@ La base de datos requiere las siguientes tablas:
 | `comunidades` | Comunidades, relacionadas con un centro |
 | `boletos` | Boletos con estado (`pagado`, `no_pagado`, `regresado`) |
 | `regalos` | Regalos registrados por comunidad |
+| `transacciones` | Registro de entradas y salidas de caja |
 
 ## Roles de usuario
 
@@ -78,6 +80,8 @@ src/
     │       └── +page.svelte  # Detalle del centro
     ├── comunidad/
     │   └── +page.svelte      # Vista de todas las comunidades
+    ├── finanzas/
+    │   └── +page.svelte      # Control de caja
     └── usuarios/
         └── +page.svelte      # Gestión de usuarios (admin)
 ```
