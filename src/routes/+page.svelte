@@ -2,6 +2,7 @@
 	import { centros, estadisticasCentros, estadisticasComunidades } from '$lib/stores';
 	import { PRECIO_BOLETO } from '$lib/types';
 	import type { Boleto } from '$lib/types';
+	import { auth } from '$lib/auth';
 	import Modal from '$lib/components/Modal.svelte';
 
 	let modalActivo: 'pagados' | 'pendientes' | 'regalos' | 'regresados' | 'perdidos' | 'busqueda' | null = null;
@@ -11,10 +12,15 @@
 	let resultadoBusqueda: {
 		numero: number;
 		centro: string;
+		centroId: string;
 		comunidad: string;
+		comunidadId: string;
+		boletoId: string;
 		estado: Boleto['estado'];
 		found: boolean;
 	} | null = null;
+	
+	$: puedeEditar = $auth.usuario?.role === 'admin' || $auth.usuario?.role === 'editor';
 	
 	function buscarBoleto() {
 		const numero = parseInt(numeroBoletoBusqueda);
@@ -30,7 +36,10 @@
 					resultadoBusqueda = {
 						numero: boleto.numero,
 						centro: centro.nombre,
+						centroId: centro.id,
 						comunidad: com.nombre,
+						comunidadId: com.id,
+						boletoId: boleto.id,
 						estado: boleto.estado,
 						found: true
 					};
@@ -44,7 +53,10 @@
 		resultadoBusqueda = {
 			numero,
 			centro: '',
+			centroId: '',
 			comunidad: '',
+			comunidadId: '',
+			boletoId: '',
 			estado: 'no_pagado',
 			found: false
 		};
@@ -69,6 +81,24 @@
 			'perdido': '#f59e0b'
 		};
 		return colors[estado];
+	}
+	
+	async function cambiarEstadoBoleto(nuevoEstado: Boleto['estado']) {
+		if (!resultadoBusqueda || !resultadoBusqueda.found || !puedeEditar) return;
+		if (nuevoEstado === resultadoBusqueda.estado) return;
+		
+		await centros.cambiarEstadoBoleto(
+			resultadoBusqueda.centroId,
+			resultadoBusqueda.comunidadId,
+			resultadoBusqueda.boletoId,
+			nuevoEstado
+		);
+		
+		// Actualizar el resultado de búsqueda con el nuevo estado
+		resultadoBusqueda = {
+			...resultadoBusqueda,
+			estado: nuevoEstado
+		};
 	}
 	
 	// Estado para controlar qué items están expandidos en cada modal
@@ -817,44 +847,6 @@
 	</div>
 </Modal>
 
-<!-- Modal Resultado Búsqueda -->
-<Modal show={modalActivo === 'busqueda'} title={resultadoBusqueda?.found ? `Boleto #${resultadoBusqueda.numero} encontrado` : 'Boleto no encontrado'} onClose={cerrarModal}>
-	<div class="modal-content busqueda-modal">
-		{#if resultadoBusqueda}
-			{#if resultadoBusqueda.found}
-				<div class="resultado-encontrado">
-					<div class="resultado-numero" style="color: {getEstadoColor(resultadoBusqueda.estado)}">
-						<span class="numero">#{resultadoBusqueda.numero}</span>
-						<span class="estado-badge" style="background: {getEstadoColor(resultadoBusqueda.estado)}20; color: {getEstadoColor(resultadoBusqueda.estado)}">
-							{getEstadoLabel(resultadoBusqueda.estado)}
-						</span>
-					</div>
-					
-					<div class="resultado-info">
-						<div class="info-item">
-							<span class="info-label">Centro</span>
-							<span class="info-value">{resultadoBusqueda.centro}</span>
-						</div>
-						<div class="info-item">
-							<span class="info-label">Comunidad</span>
-							<span class="info-value">{resultadoBusqueda.comunidad}</span>
-						</div>
-					</div>
-				</div>
-			{:else}
-				<div class="resultado-no-encontrado">
-					<div class="no-encontrado-icon">
-						<svg width="48" height="48" viewBox="0 0 16 16" fill="none">
-							<path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 12a1 1 0 110-2 1 1 0 010 2zm0-3a1 1 0 01-1-1V4a1 1 0 012 0v4a1 1 0 01-1 1z" fill="#d4d4d8"/>
-						</svg>
-					</div>
-					<p class="no-encontrado-texto">El boleto <strong>#{resultadoBusqueda.numero}</strong> no está registrado en el sistema.</p>
-					<p class="no-encontrado-sub">Verifica que el número sea correcto o que el boleto haya sido agregado.</p>
-				</div>
-			{/if}
-		{/if}
-	</div>
-</Modal>
 
 <style>
 	.dashboard {
@@ -1535,6 +1527,73 @@
 		margin: 0;
 	}
 
+	/* Estado Editor */
+	.estado-editor {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		width: 100%;
+		max-width: 400px;
+		padding-top: 1rem;
+		border-top: 1px solid #f4f4f5;
+	}
+
+	.editor-label {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: #0f0f0f;
+		text-align: center;
+	}
+
+	.estado-botones {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: nowrap;
+		justify-content: center;
+	}
+
+	.estado-btn {
+		padding: 0.5rem 0.875rem;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		border: 1px solid #e5e5e5;
+		border-radius: 100px;
+		background: #fff;
+		color: #6b6b6b;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		white-space: nowrap;
+	}
+
+	.estado-btn:hover {
+		border-color: #0f0f0f;
+		color: #0f0f0f;
+	}
+
+	.estado-btn.active.pagado {
+		background: #10b981;
+		border-color: #10b981;
+		color: #fff;
+	}
+
+	.estado-btn.active.no-pagado {
+		background: #ef4444;
+		border-color: #ef4444;
+		color: #fff;
+	}
+
+	.estado-btn.active.regresado {
+		background: #6b7280;
+		border-color: #6b7280;
+		color: #fff;
+	}
+
+	.estado-btn.active.perdido {
+		background: #f59e0b;
+		border-color: #f59e0b;
+		color: #fff;
+	}
+
 	@media (max-width: 1100px) {
 		.metrics {
 			grid-template-columns: repeat(3, 1fr);
@@ -1571,6 +1630,10 @@
 			width: 100%;
 			justify-content: center;
 		}
+		.estado-btn {
+			padding: 0.5rem 0.625rem;
+			font-size: 0.75rem;
+		}
 	}
 
 	@media (max-width: 400px) {
@@ -1579,3 +1642,81 @@
 		}
 	}
 </style>
+<!-- Modal Resultado Búsqueda -->
+<Modal show={modalActivo === 'busqueda'} title={resultadoBusqueda?.found ? `Boleto #${resultadoBusqueda.numero} encontrado` : 'Boleto no encontrado'} onClose={cerrarModal}>
+	<div class="modal-content busqueda-modal">
+		{#if resultadoBusqueda}
+			{#if resultadoBusqueda.found}
+				<div class="resultado-encontrado">
+					<div class="resultado-numero" style="color: {getEstadoColor(resultadoBusqueda.estado)}">
+						<span class="numero">#{resultadoBusqueda.numero}</span>
+						<span class="estado-badge" style="background: {getEstadoColor(resultadoBusqueda.estado)}20; color: {getEstadoColor(resultadoBusqueda.estado)}">
+							{getEstadoLabel(resultadoBusqueda.estado)}
+						</span>
+					</div>
+					
+					<div class="resultado-info">
+						<div class="info-item">
+							<span class="info-label">Centro</span>
+							<span class="info-value">{resultadoBusqueda.centro}</span>
+						</div>
+						<div class="info-item">
+							<span class="info-label">Comunidad</span>
+							<span class="info-value">{resultadoBusqueda.comunidad}</span>
+						</div>
+					</div>
+					
+					{#if puedeEditar}
+						<div class="estado-editor">
+							<span class="editor-label">Cambiar estado:</span>
+							<div class="estado-botones">
+								<button
+									class="estado-btn"
+									class:active={resultadoBusqueda.estado === 'pagado'}
+									class:pagado={resultadoBusqueda.estado === 'pagado'}
+									on:click={() => cambiarEstadoBoleto('pagado')}
+								>
+									Pagado
+								</button>
+								<button
+									class="estado-btn"
+									class:active={resultadoBusqueda.estado === 'no_pagado'}
+									class:no-pagado={resultadoBusqueda.estado === 'no_pagado'}
+									on:click={() => cambiarEstadoBoleto('no_pagado')}
+								>
+									No pagado
+								</button>
+								<button
+									class="estado-btn"
+									class:active={resultadoBusqueda.estado === 'regresado'}
+									class:regresado={resultadoBusqueda.estado === 'regresado'}
+									on:click={() => cambiarEstadoBoleto('regresado')}
+								>
+									Regresado
+								</button>
+								<button
+									class="estado-btn"
+									class:active={resultadoBusqueda.estado === 'perdido'}
+									class:perdido={resultadoBusqueda.estado === 'perdido'}
+									on:click={() => cambiarEstadoBoleto('perdido')}
+								>
+									Perdido
+								</button>
+							</div>
+						</div>
+					{/if}
+				</div>
+			{:else}
+				<div class="resultado-no-encontrado">
+					<div class="no-encontrado-icon">
+						<svg width="48" height="48" viewBox="0 0 16 16" fill="none">
+							<path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 12a1 1 0 110-2 1 1 0 010 2zm0-3a1 1 0 01-1-1V4a1 1 0 012 0v4a1 1 0 01-1 1z" fill="#d4d4d8"/>
+					</svg>
+					</div>
+					<p class="no-encontrado-texto">El boleto <strong>#{resultadoBusqueda.numero}</strong> no está registrado en el sistema.</p>
+					<p class="no-encontrado-sub">Verifica que el número sea correcto o que el boleto haya sido agregado.</p>
+				</div>
+			{/if}
+		{/if}
+	</div>
+</Modal>
